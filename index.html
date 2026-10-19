@@ -50,6 +50,7 @@ const OKURL=u=>/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(u
 (()=>{const m=location.hash.match(/[#&]u=([^&]+)/);if(m){try{const u=decodeURIComponent(m[1]);if(OKURL(u))localStorage.setItem('brp_url',u)}catch{}history.replaceState(null,'',location.pathname+location.search)}})();
 let cfg=load('brp_cfg',null),S=load('brp_db',{}),V={name:'dash',q:'',f:'Active',t:'all'},syncing=false;
 ['patients','monthly','weekly','log','queue'].forEach(k=>S[k]=S[k]||[]);
+const norm=()=>['monthly','weekly'].forEach(k=>S[k].forEach(f=>f.type=k));norm();
 const save=()=>localStorage.setItem('brp_db',JSON.stringify(S));
 const REASONS=['Deceased','No longer applicable as a bed-ridden patient','Other'];
 const SIGNS=['Jaundice','Cyanosis','Clubbing','Edema','Dehydration','Pallor','Petechiae','Anasarca','Koilonychia','Lymph nodes'];
@@ -75,7 +76,7 @@ async function sync(manual){
     const r=await fetch(cfg.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({pin:cfg.pin,user:cfg.user,ops:sent})});
     const j=await r.json();if(!j.ok)throw new Error(j.error);
     const ids=new Set(sent.map(o=>o.id));S.queue=S.queue.filter(o=>!ids.has(o.id));
-    ['patients','monthly','weekly','log'].forEach(k=>S[k]=j[k]);S.queue.forEach(applyOp);S.last=now();ok=true;if(manual)toast('Synced');
+    ['patients','monthly','weekly','log'].forEach(k=>S[k]=j[k]);norm();S.queue.forEach(applyOp);S.last=now();ok=true;if(manual)toast('Synced');
   }catch(e){if(manual)toast(e.message==='auth'?'Wrong PIN':'Could not reach the server. Changes stay on this tablet.',1)}
   syncing=false;save();V.name==='form'?paint():render();return ok}
 
