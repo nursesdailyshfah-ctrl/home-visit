@@ -1,0 +1,179 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0e5c63">
+<link rel="manifest" href="manifest.json"><link rel="icon" href="icon.svg">
+<title>Home Visit Register</title>
+<style>
+:root{--ink:#16262b;--mut:#5d6f74;--bg:#f3f6f5;--line:#d5dfdd;--main:#0e5c63;--warn:#b4492f}
+*{box-sizing:border-box}body{margin:0;font:16px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:var(--bg)}
+header{background:var(--main);color:#fff;display:flex;align-items:center;gap:12px;padding:10px 16px;position:sticky;top:0;z-index:5}
+header h1{font-size:18px;margin:0;flex:1}.st{display:flex;align-items:center;gap:8px;font-size:14px}
+.dot{width:10px;height:10px;border-radius:50%;background:#7ee2a8}.off .dot{background:#ffb199}
+header .btn{min-height:36px;padding:4px 12px;background:transparent;color:#fff;border-color:#fff}
+nav{display:flex;gap:4px;padding:6px 16px 0;background:#fff;border-bottom:1px solid var(--line);overflow-x:auto}
+nav button{border:0;background:none;padding:12px 16px;font:inherit;color:var(--mut);border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap}
+nav button.on{color:var(--main);border-color:var(--main);font-weight:600}
+main{max-width:1200px;margin:0 auto;padding:16px}.m{color:var(--mut);font-size:14px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}@media(max-width:800px){.grid{grid-template-columns:1fr}}
+.card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:16px;margin-bottom:16px}.grid .card{margin:0}
+h2{font-size:18px;margin:0 0 12px}h3{font-size:15px;margin:16px 0 4px}
+.tiles{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap}.tile{flex:1;min-width:110px;background:var(--bg);border-radius:6px;padding:10px}.tile b{display:block;font-size:26px}.tile span{font-size:13px;color:var(--mut)}
+table{width:100%;border-collapse:collapse}td,th{padding:10px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{font-size:13px;color:var(--mut);font-weight:600}
+tr[data-act]{cursor:pointer}tr[data-act]:hover{background:#f3f8f7}.wrap{overflow-x:auto}
+.chip{display:inline-block;padding:2px 8px;border-radius:99px;font-size:12.5px;background:#e4ecea;white-space:nowrap}.ok{background:#dcefe3;color:#1d5c38}.warn{background:#f8e0d8;color:#8a3420}.amb{background:#f6ebcc;color:#7a5508}
+.btn{font:inherit;padding:10px 16px;border-radius:6px;border:1px solid var(--main);background:#fff;color:var(--main);cursor:pointer;min-height:44px}.btn.p{background:var(--main);color:#fff}.btn.d{border-color:var(--warn);color:var(--warn)}
+input,select,textarea{font:inherit;width:100%;padding:10px;border:1px solid #b9c8c5;border-radius:6px;background:#fff;min-height:44px}textarea{min-height:90px}
+label{display:block;font-size:14px;color:var(--mut);margin-bottom:4px}
+.fg{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}.fg>div:has(textarea){grid-column:1/-1}
+.bar2{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}.sp{flex:1}.bar2 input,.bar2 select{width:auto;min-width:180px}
+.signs{display:flex;flex-wrap:wrap;gap:8px}.signs label{display:flex;align-items:center;gap:8px;color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:8px 12px;margin:0;min-height:44px;font-size:16px}.signs input{width:20px;min-height:0}
+.note{background:#f8e0d8;border-radius:6px;padding:10px 12px;margin-bottom:12px}
+dialog{border:0;border-radius:10px;padding:20px;width:min(560px,94vw)}dialog::backdrop{background:#0008}
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:6px;z-index:99}.toast.e{background:var(--warn)}
+#print{display:none}
+@media print{@page{size:A4;margin:12mm}body>:not(#print){display:none!important}body{background:#fff}
+#print{display:block;color:#000;font:12px/1.4 Arial,sans-serif}.ph{text-align:center;margin-bottom:8px}.ph h2{margin:6px 0;font-size:16px}
+.pt{width:100%;border-collapse:collapse;margin:6px 0}.pt td,.pt th{border:1px solid #000;padding:5px 6px;color:#000;font-size:12px}
+.pa{margin:4px 0;border-bottom:1px dotted #555;min-height:18px;white-space:pre-wrap}#print h4{margin:10px 0 2px;font-size:13px}.pk{display:inline-block;margin:2px 12px 2px 0}.sg td{height:42px}}
+</style></head><body>
+<header><h1>Home Visit Register</h1><div class="st" id="st"></div><button class="btn" id="sb" data-act="sync">Sync now</button><button class="btn" id="lo" data-act="logout">Sign out</button></header>
+<nav id="nav"><button data-v="dash">Dashboard</button><button data-v="patients">Patients</button><button data-v="forms">Forms</button><button data-v="log">Activity log</button></nav>
+<main id="main"></main><dialog id="dlg"></dialog><div id="print"></div>
+<script>
+const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6),now=()=>new Date().toISOString();
+const today=()=>{const d=new Date();return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)};
+const ago=d=>d?Math.floor((new Date(today())-new Date(d))/864e5):null;
+const fmt=t=>t?new Date(t).toLocaleString([],{dateStyle:'medium',timeStyle:'short'}):'';
+const load=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d}catch{return d}};
+let cfg=load('brp_cfg',null),S=load('brp_db',{}),V={name:'dash',q:'',f:'Active',t:'all'},syncing=false;
+['patients','monthly','weekly','log','queue'].forEach(k=>S[k]=S[k]||[]);
+const save=()=>localStorage.setItem('brp_db',JSON.stringify(S));
+const REASONS=['Deceased','No longer applicable as a bed-ridden patient','Other'];
+const SIGNS=['Jaundice','Cyanosis','Clubbing','Edema','Dehydration','Pallor','Petechiae','Anasarca','Koilonychia','Lymph nodes'];
+const MF=[['1. History of the presenting complaints',[['hpc','History of the presenting complaints','a']]],
+['2. Social history',[['people','Number of people living in this room'],['room','Size of room']]],
+['3. Environmental history',[['vent','Ventilation of the room','gb'],['water','Drinking water','gb']]],
+['4. Personal history',[['appetite','Patient’s appetite'],['bowel','Bowel movement'],['hygiene','Hygiene'],['sleep','Sleeping pattern']]],
+['5. General examination',[['appearance','General appearance'],['consc','Consciousness'],['temp','Temperature'],['bp','Blood pressure'],['pulse','Pulse rate'],['rr','Respiratory rate']]],
+['6. Systemic examination',[['cvs','Cardiovascular system','a'],['resp','Respiratory system','a'],['abd','Abdomen','a'],['cns','Central nervous system','a']]],
+['7. Current medication history',[['meds','Current medication history','a']]],['8. Remarks',[['remarks','Remarks','a']]]];
+const WI=['Temperature','Respiratory Rate','Pulse Rate','Blood Pressure','O2','Personal Hygiene','Environmental cleanliness','Presenting complaint','New complaint','Treatment (Regular or not)','Appetite','Urine','Motion','Exercise (Regular or not)','Bed Sore'];
+const SO={monthly:[['Name of the HW','hw'],['Name of the Nurse','nurse'],['Name of the Doctor','doctor']],weekly:[['Name of the H.O','ho1'],['Name of the H.O','ho2']]};
+
+/* ---------- data ---------- */
+const flat=o=>{const r={...o,...(o.data||{})};['data','updatedAt','createdAt','savedBy'].forEach(k=>delete r[k]);if(Array.isArray(r.signs))r.signs=r.signs.join(', ');return r};
+const diff=(a,b)=>{a=flat(a);b=flat(b);const c=s=>String(s??'').slice(0,40);return Object.keys(b).filter(k=>c(a[k])!==c(b[k])||String(a[k]??'')!==String(b[k]??'')).map(k=>`${k}: “${c(a[k])}” → “${c(b[k])}”`).join('; ')};
+function applyOp(o){const a=S[o.coll],i=a.findIndex(x=>x.id===o.rec.id);i<0?a.push(o.rec):a[i]=o.rec}
+function queue(coll,rec,act,detail){const o={id:uid(),ts:now(),coll,rec,act,detail};applyOp(o);S.queue.push(o);save();paint();setTimeout(()=>sync(),300)}
+const pend=id=>S.queue.some(o=>o.rec.id===id);
+async function sync(manual){
+  if(!cfg||syncing)return false;syncing=true;paint();const sent=S.queue.slice();let ok=false;
+  try{
+    const r=await fetch(cfg.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({pin:cfg.pin,user:cfg.user,ops:sent})});
+    const j=await r.json();if(!j.ok)throw new Error(j.error);
+    const ids=new Set(sent.map(o=>o.id));S.queue=S.queue.filter(o=>!ids.has(o.id));
+    ['patients','monthly','weekly','log'].forEach(k=>S[k]=j[k]);S.queue.forEach(applyOp);S.last=now();ok=true;if(manual)toast('Synced');
+  }catch(e){if(manual)toast(e.message==='auth'?'Wrong PIN':'Could not reach the server. Changes stay on this tablet.',1)}
+  syncing=false;save();V.name==='form'?paint():render();return ok}
+
+/* ---------- ui helpers ---------- */
+function toast(t,e){const d=document.createElement('div');d.className='toast'+(e?' e':'');d.textContent=t;document.body.append(d);setTimeout(()=>d.remove(),3200)}
+function modal(h){$('#dlg').innerHTML=h;$('#dlg').showModal()}const closeM=()=>$('#dlg').close();
+function paint(){const on=navigator.onLine;$('#st').className='st'+(on?'':' off');
+  $('#st').innerHTML=`<span class=dot></span>${on?'Online':'Offline'} · ${S.queue.length?S.queue.length+' waiting to sync':'all synced'}`;
+  $('#sb').hidden=$('#lo').hidden=$('#nav').hidden=!cfg;$('#sb').disabled=syncing;$('#sb').textContent=syncing?'Syncing…':'Sync now'}
+function go(v,id){V.name=v;V.id=id;V.q='';render();scrollTo(0,0)}
+function render(){paint();document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===V.name||(V.name==='patient'&&b.dataset.v==='patients')||(V.name==='form'&&b.dataset.v==='forms')));
+  if(!cfg){$('#main').innerHTML=loginView();return}if(V.name==='form'&&!V.e)V.name='dash';
+  $('#main').innerHTML=({dash,patients,patient,forms,log,form})[V.name]()}
+const chip=(c,t)=>`<span class="chip ${c}">${t}</span>`;
+const dueChip=(a,lim)=>a===null?chip('warn','No visit yet'):chip(a>lim?'warn':'ok',a===0?'Today':a+' d ago');
+const act=()=>S.patients.filter(p=>p.status!=='Removed'),lastV=(pid,c)=>S[c].filter(f=>f.patientId===pid).map(f=>f.visitDate).sort().pop();
+const allForms=()=>[...S.monthly,...S.weekly].sort((a,b)=>(b.visitDate||'').localeCompare(a.visitDate)||(b.updatedAt||'').localeCompare(a.updatedAt||''));
+const formRow=f=>`<tr data-act="of" data-id="${f.id}" data-t="${f.type}"><td>${esc(f.visitDate)}<td>${esc(f.patientName)}<td>${chip(f.type==='monthly'?'amb':'',f.type)}<td>${pend(f.id)?chip('amb','Waiting to sync'):''}`;
+
+/* ---------- views ---------- */
+function loginView(){return `<div class=card style="max-width:460px;margin:30px auto"><h2>Connect to the register</h2><p class=m>Enter these once while online. They stay saved on this tablet.</p>
+<div class=fg style="grid-template-columns:1fr"><div><label>Web app URL</label><input id=lu value="${esc(cfg?.url||'')}" placeholder="https://script.google.com/macros/s/…/exec"></div><div><label>Your name</label><input id=ln></div><div><label>PIN</label><input id=lp type=password></div></div><br><button class="btn p" data-act=login>Connect</button></div>`}
+function dash(){const A=act(),R=S.patients.filter(p=>p.status==='Removed'),rs=r=>R.filter(p=>p.removalReason===r).length;
+  const wk=S.weekly.filter(f=>ago(f.visitDate)<7).length,mo=S.monthly.filter(f=>(f.visitDate||'').slice(0,7)===today().slice(0,7)).length;
+  const need=A.map(p=>({p,w:ago(lastV(p.id,'weekly')),m:ago(lastV(p.id,'monthly'))})).sort((a,b)=>(b.w??999)-(a.w??999));
+  return `<div class=grid><section class=card><h2>Patients</h2><div class=tiles><div class=tile><b>${A.length}</b><span>Active bed-ridden patients</span></div><div class=tile><b>${R.length}</b><span>Removed from register</span></div></div>
+<p class=m>Removed: ${rs(REASONS[0])} deceased · ${rs(REASONS[1])} no longer applicable · ${R.length-rs(REASONS[0])-rs(REASONS[1])} other</p>
+<h3>Visit status</h3>${A.length?`<div class=wrap><table><tr><th>Patient<th>Weekly<th>Monthly</tr>${need.map(x=>`<tr data-act=pat data-id="${x.p.id}"><td>${esc(x.p.name)}<br><span class=m>${esc(x.p.regNo)}</span><td>${dueChip(x.w,7)}<td>${dueChip(x.m,30)}`).join('')}</table></div>`:`<p class=m>No patients registered yet.</p><button class="btn p" data-act=newp>Register a patient</button>`}</section>
+<section class=card><h2>Forms</h2><div class=tiles><div class=tile><b>${wk}</b><span>Weekly forms, last 7 days</span></div><div class=tile><b>${mo}</b><span>Monthly forms this month</span></div><div class=tile><b>${S.queue.length}</b><span>Waiting to sync</span></div></div>
+<h3>Recent forms</h3>${allForms().length?`<div class=wrap><table><tr><th>Visit<th>Patient<th>Type<th></tr>${allForms().slice(0,8).map(formRow).join('')}</table></div>`:'<p class=m>No forms filled yet. Open a patient to start a visit.</p>'}</section></div>`}
+function patients(){return `<div class=bar2><input data-q placeholder="Search name or registry no." value="${esc(V.q)}"><select data-f>${['Active','Removed','All'].map(o=>`<option ${V.f===o?'selected':''}>${o}</option>`).join('')}</select><span class=sp></span><button class="btn p" data-act=newp>Register patient</button></div><div class=card id=list>${plist()}</div>`}
+function plist(){const q=V.q.toLowerCase(),L=S.patients.filter(p=>(V.f==='All'||(V.f==='Removed')===(p.status==='Removed'))&&(p.name+p.regNo).toLowerCase().includes(q)).sort((a,b)=>a.name.localeCompare(b.name));
+  return L.length?`<div class=wrap><table><tr><th>Name<th>Registry no.<th>Age / sex<th>Address<th>Status</tr>${L.map(p=>`<tr data-act=pat data-id="${p.id}"><td>${esc(p.name)}<td>${esc(p.regNo)}<td>${esc(p.age)} ${esc(p.sex)}<td>${esc(p.address)}<td>${p.status==='Removed'?chip('warn',esc(p.removalReason)):pend(p.id)?chip('amb','Waiting to sync'):chip('ok','Active')}`).join('')}</table></div>`:'<p class=m>No patients match.</p>'}
+function patient(){const p=S.patients.find(x=>x.id===V.id);if(!p)return'<p>Patient not found.</p>';const rem=p.status==='Removed';
+  const fs=allForms().filter(f=>f.patientId===p.id),i=(l,v)=>`<div><label>${l}</label>${esc(v)||'–'}</div>`;
+  return `<div class=bar2><button class=btn data-act=nav2 data-v=patients>Back to patients</button><span class=sp></span>${rem?'<button class="btn p" data-act=reinstate>Reinstate patient</button>':`<button class="btn p" data-act=nf data-t=weekly>New weekly visit</button><button class="btn p" data-act=nf data-t=monthly>New monthly visit</button>`}<button class=btn data-act=editp>Edit details</button>${rem?'':'<button class="btn d" data-act=rmp>Remove from register</button>'}</div>
+<div class=card><h2>${esc(p.name)}</h2>${rem?`<div class=note>Removed on ${esc(p.removedOn)}: <b>${esc(p.removalReason)}</b>${p.removalNote?'. '+esc(p.removalNote):''}</div>`:''}
+<div class=fg>${i('Registry no.',p.regNo)}${i('Age',p.age)}${i('Sex',p.sex)}${i('ID card no.',p.nid)}${i('Address',p.address)}${i('Contact',p.contact)}${i('Caregiver',p.caregiver)}${i('Condition / diagnosis',p.condition)}${i('Registered on',p.registeredOn)}</div></div>
+<div class=card><h2>Visit forms</h2>${fs.length?`<div class=wrap><table><tr><th>Visit<th>Patient<th>Type<th></tr>${fs.map(formRow).join('')}</table></div>`:'<p class=m>No visits recorded yet.</p>'}</div>`}
+function forms(){return `<div class=bar2><input data-q placeholder="Search patient" value="${esc(V.q)}"><select data-t>${['all','weekly','monthly'].map(o=>`<option value=${o} ${V.t===o?'selected':''}>${o==='all'?'All forms':o[0].toUpperCase()+o.slice(1)}</option>`).join('')}</select></div><div class=card id=list>${flist()}</div>`}
+function flist(){const L=allForms().filter(f=>(V.t==='all'||f.type===V.t)&&f.patientName.toLowerCase().includes(V.q.toLowerCase()));
+  return L.length?`<div class=wrap><table><tr><th>Visit<th>Patient<th>Type<th>Saved by<th>Sync<th></tr>${L.map(f=>`<tr data-act=of data-id="${f.id}" data-t="${f.type}"><td>${esc(f.visitDate)}<td>${esc(f.patientName)}<td>${chip(f.type==='monthly'?'amb':'',f.type)}<td>${esc(f.savedBy)}<td>${pend(f.id)?chip('amb','Waiting'):chip('ok','Synced')}<td><button class=btn data-act=pr data-id="${f.id}" data-t="${f.type}">PDF</button>`).join('')}</table></div>`:'<p class=m>No forms found. Open a patient and start a visit.</p>'}
+function log(){return `<div class=bar2><input data-q placeholder="Filter the activity log" value="${esc(V.q)}"></div><div class=card id=list>${llist()}</div>`}
+function llist(){const P=S.queue.map(o=>({time:o.ts,user:cfg.user,action:o.act,detail:o.detail,p:1}));
+  const L=[...P.reverse(),...S.log].filter(e=>(e.user+e.action+e.detail).toLowerCase().includes(V.q.toLowerCase()));
+  return L.length?`<div class=wrap><table><tr><th>When<th>Who<th>Action<th>Details</tr>${L.map(e=>`<tr><td>${fmt(e.time)}${e.p?'<br>'+chip('amb','Waiting to sync'):''}<td>${esc(e.user)}<td>${esc(e.action)}<td>${esc(e.detail)}`).join('')}</table></div>`:'<p class=m>No activity yet.</p>'}
+const fld=(k,l,t,d)=>{const v=esc(d[k]);return `<div><label>${l}</label>${t==='a'?`<textarea data-k="${k}">${v}</textarea>`:t==='gb'?`<select data-k="${k}">${['','Good','Bad'].map(o=>`<option ${d[k]===o?'selected':''}>${o}</option>`).join('')}</select>`:`<input ${t==='d'?'type=date ':''}data-k="${k}" value="${v}">`}</div>`};
+function form(){const {rec,restored}=V.e,d=rec.data||{},m=rec.type==='monthly';
+  return `<div class=bar2><button class=btn data-act=back>Back</button><span class=sp></span><button class=btn data-act=printform>Save and print / PDF</button><button class="btn p" data-act=saveform>Save</button></div>
+<div id=f>${restored?'<div class=note>Unsaved draft restored.</div>':''}<div class=card><h2>${esc(rec.patientName)} · ${esc(rec.regNo)}</h2><p class=m>${m?'Bed-ridden patient’s home visiting form (monthly)':'Weekly visiting form'}</p><div class=fg><div><label>Visit date</label><input type=date id=vd value="${esc(rec.visitDate)}"></div></div></div>`+
+(m?`<div class=card><h2>Signs</h2><div class=signs>${SIGNS.map(s=>`<label><input type=checkbox data-s="${s}" ${(d.signs||[]).includes(s)?'checked':''}>${s}</label>`).join('')}</div></div>`+MF.map(([t,fs])=>`<div class=card><h2>${t}</h2><div class=fg>${fs.map(([k,l,ty])=>fld(k,l,ty,d)).join('')}</div></div>`).join('')
+:`<div class=card><div class=wrap><table><tr><th>#<th>Check up<th>Result<th>Remarks</tr>${WI.map((n,i)=>`<tr><td>${i+1}<td>${n}<td><input data-k="r${i}" value="${esc(d['r'+i])}"><td><input data-k="m${i}" value="${esc(d['m'+i])}">`).join('')}</table></div></div>`)+
+`<div class=card><h2>Sign-off</h2><div class=fg>${SO[rec.type].map(([l,k])=>fld(k,l,'',d)+fld(k+'_d','Date','d',d)).join('')}</div><p class=m>Signatures are added by hand on the printed copy.</p></div></div>`}
+function readForm(){const d={};document.querySelectorAll('#f [data-k]').forEach(e=>d[e.dataset.k]=e.value);if($('#f [data-s]'))d.signs=[...document.querySelectorAll('#f [data-s]:checked')].map(x=>x.dataset.s);return d}
+
+/* ---------- print / PDF ---------- */
+function printHTML(f){const d=f.data||{},m=f.type==='monthly';
+  const head=`<div class=ph><div>Sh: Atoll Hospital</div><div>Sh: Funadhoo</div><h2>${m?'Bed ridden Patient’s Home visiting form':'Weekly visiting form'}</h2></div><table class=pt><tr><td>Name of the Patient: <b>${esc(f.patientName)}</b><td>Registry No.: <b>${esc(f.regNo)}</b><td>Date: <b>${esc(f.visitDate)}</b></table>`;
+  const sign=`<table class="pt sg"><tr><th>Name<th>Date<th>Signature</tr>${SO[f.type].map(([l,k])=>`<tr><td>${l}: ${esc(d[k])}<td>${esc(d[k+'_d'])}<td style="width:35%">`).join('')}</table>`;
+  return head+(m?`<p>${SIGNS.map(s=>`<span class=pk>${(d.signs||[]).includes(s)?'☑':'☐'} ${s}</span>`).join('')}</p>`+MF.map(([t,fs])=>`<h4>${t}</h4>`+fs.map(([k,l])=>`<div class=pa><b>${l}:</b> ${esc(d[k])}</div>`).join('')).join('')
+  :`<table class=pt><tr><th>#<th>Check up<th>Result<th>Remarks</tr>${WI.map((n,i)=>`<tr><td>${i+1}<td>${n}<td>${esc(d['r'+i])}<td>${esc(d['m'+i])}`).join('')}</table>`)+sign}
+function printForm(f){$('#print').innerHTML=printHTML(f);const t=document.title;document.title=`${f.patientName} - ${f.type} visit ${f.visitDate}`;print();document.title=t}
+
+/* ---------- actions ---------- */
+const H={};
+H.nav2=e=>go(e.dataset.v);H.pat=e=>go('patient',e.dataset.id);H.sync=()=>sync(true);
+H.login=async()=>{const old=cfg;cfg={url:$('#lu').value.trim(),user:$('#ln').value.trim(),pin:$('#lp').value};if(!cfg.url||!cfg.user||!cfg.pin){cfg=old;return toast('Fill in all three fields',1)}
+  if(await sync(true)){localStorage.setItem('brp_cfg',JSON.stringify(cfg));render()}else cfg=old};
+H.logout=()=>{if(confirm('Sign out? Unsynced changes stay on this tablet until you sign in again.')){cfg=null;localStorage.removeItem('brp_cfg');render()}};
+const pfield=(k,l,v,t)=>`<div><label>${l}</label><input name=${k} ${t?'type='+t:''} value="${esc(v)}"></div>`;
+H.newp=H.editp=e=>{const p=e.dataset.act==='editp'?S.patients.find(x=>x.id===V.id):{registeredOn:today()};
+  modal(`<h2>${p.id?'Edit patient':'Register patient'}</h2><form id=pf><input type=hidden name=id value="${p.id||''}"><div class=fg>${pfield('name','Full name',p.name)}${pfield('regNo','Registry no.',p.regNo)}${pfield('age','Age',p.age)}<div><label>Sex</label><select name=sex>${['','Male','Female'].map(o=>`<option ${p.sex===o?'selected':''}>${o}</option>`).join('')}</select></div>${pfield('nid','ID card no.',p.nid)}${pfield('contact','Contact number',p.contact)}${pfield('address','Address',p.address)}${pfield('caregiver','Caregiver',p.caregiver)}${pfield('condition','Condition / diagnosis',p.condition)}${pfield('registeredOn','Registered on',p.registeredOn,'date')}</div></form><br><div class=bar2><span class=sp></span><button class=btn data-act=close>Cancel</button><button class="btn p" data-act=savep>Save</button></div>`)};
+H.close=closeM;
+H.savep=()=>{const f=Object.fromEntries(new FormData($('#pf'))),old=S.patients.find(p=>p.id===f.id);f.name=f.name.trim();f.regNo=f.regNo.trim();
+  if(!f.name||!f.regNo)return toast('Name and registry number are required',1);
+  if(S.patients.some(p=>p.regNo===f.regNo&&p.id!==f.id))return toast('That registry number is already used',1);
+  const rec={status:'Active',...old,...f,id:f.id||uid(),updatedAt:now()};
+  queue('patients',rec,old?'Edited patient':'Registered patient',`${rec.name} (${rec.regNo})`+(old?' · '+(diff(old,rec)||'no field changes'):''));closeM();old?render():go('patient',rec.id)};
+H.rmp=()=>modal(`<h2>Remove from register</h2><p class=m>The patient leaves the active register. Their records are kept and can be reinstated.</p><form id=rf><div class=fg><div><label>Reason</label><select name=reason>${REASONS.map(r=>`<option>${r}</option>`).join('')}</select></div><div><label>Date</label><input type=date name=date value="${today()}"></div><div><label>Note (required if Other)</label><textarea name=note></textarea></div></div></form><br><div class=bar2><span class=sp></span><button class=btn data-act=close>Cancel</button><button class="btn d" data-act=confirmrm>Remove patient</button></div>`);
+H.confirmrm=()=>{const f=Object.fromEntries(new FormData($('#rf'))),p=S.patients.find(x=>x.id===V.id);if(f.reason==='Other'&&!f.note.trim())return toast('Please describe the reason',1);
+  queue('patients',{...p,status:'Removed',removedOn:f.date,removalReason:f.reason,removalNote:f.note.trim(),updatedAt:now()},'Removed patient',`${p.name} (${p.regNo}) · ${f.reason}${f.note.trim()?': '+f.note.trim():''} · on ${f.date}`);closeM();render()};
+H.reinstate=()=>{const p=S.patients.find(x=>x.id===V.id);if(!confirm('Reinstate '+p.name+' as an active patient?'))return;
+  queue('patients',{...p,status:'Active',removedOn:'',removalReason:'',removalNote:'',updatedAt:now()},'Reinstated patient',`${p.name} (${p.regNo}) · previously: ${p.removalReason}`);render()};
+H.nf=e=>{const t=e.dataset.t,p=S.patients.find(x=>x.id===V.id),dr=S.draft;
+  V.e=dr&&dr.rec.type===t&&dr.rec.patientId===p.id&&!S[t].some(f=>f.id===dr.rec.id)?{rec:dr.rec,restored:1}:{rec:{id:uid(),type:t,patientId:p.id,patientName:p.name,regNo:p.regNo,visitDate:today(),data:{},createdAt:now()}};go('form')};
+H.of=e=>{const rec=JSON.parse(JSON.stringify(S[e.dataset.t].find(f=>f.id===e.dataset.id))),dr=S.draft;V.e=dr&&dr.rec.id===rec.id?{rec:dr.rec,restored:1}:{rec};V.from=V.name;go('form')};
+H.back=()=>{const r=V.e.rec;go(V.from==='forms'?'forms':'patient',r.patientId)};
+H.saveform=()=>{const r=V.e.rec,old=S[r.type].find(f=>f.id===r.id),rec={...r,visitDate:$('#vd').value||today(),data:readForm(),savedBy:cfg.user,updatedAt:now()};
+  queue(r.type,rec,(old?'Edited ':'Created ')+r.type+' form',`${rec.patientName} · visit ${rec.visitDate}`+(old?' · '+(diff(old,rec)||'no field changes'):''));
+  S.draft=null;V.e={rec};save();toast(navigator.onLine?'Saved':'Saved on this tablet. It will sync when online.');return rec};
+H.printform=()=>printForm(H.saveform());
+H.pr=(e,ev)=>{ev.stopPropagation();printForm(S[e.dataset.t].find(f=>f.id===e.dataset.id))};
+document.addEventListener('click',e=>{const el=e.target.closest('[data-act]');if(el&&H[el.dataset.act])H[el.dataset.act](el,e)});
+document.addEventListener('click',e=>{const b=e.target.closest('#nav button');if(b)go(b.dataset.v)});
+document.addEventListener('input',e=>{const t=e.target;
+  if(t.dataset.q!==undefined){V.q=t.value;$('#list').innerHTML=({patients:plist,forms:flist,log:llist})[V.name]()}
+  else if(t.closest&&t.closest('#f')){const r=V.e.rec;S.draft={rec:{...r,visitDate:$('#vd').value,data:readForm()}};save()}});
+document.addEventListener('change',e=>{const t=e.target;if(t.dataset.f!==undefined){V.f=t.value;$('#list').innerHTML=plist()}if(t.dataset.t!==undefined&&V.name==='forms'){V.t=t.value;$('#list').innerHTML=flist()}});
+addEventListener('online',()=>{paint();sync()});addEventListener('offline',paint);
+setInterval(()=>{if(S.queue.length&&navigator.onLine)sync()},30000);
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');
+render();if(cfg&&navigator.onLine)sync();
+</script></body></html>
