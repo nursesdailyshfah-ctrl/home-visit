@@ -35,10 +35,13 @@ dialog{border:0;border-radius:10px;padding:20px;width:min(560px,94vw)}dialog::ba
 #print{display:block;color:#000;font:12px/1.4 Arial,sans-serif}.ph{text-align:center;margin-bottom:8px}.ph h2{margin:6px 0;font-size:16px}
 .pt{width:100%;border-collapse:collapse;margin:6px 0}.pt td,.pt th{border:1px solid #000;padding:5px 6px;color:#000;font-size:12px}
 .pa{margin:4px 0;border-bottom:1px dotted #555;min-height:18px;white-space:pre-wrap}#print h4{margin:10px 0 2px;font-size:13px}.pk{display:inline-block;margin:2px 12px 2px 0}.sg td{height:42px}}
+.signs label:has(input:checked){background:#dcefe3;border-color:var(--main)}.fg>div:has(.signs){grid-column:1/-1}.signs .btn{min-height:44px}
+.fr{display:grid;grid-template-columns:2fr 1fr auto;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}.fr textarea{grid-column:1/-1;min-height:70px}.ab{display:flex;gap:6px}.ab .btn{padding:6px 12px;min-height:40px}@media(max-width:700px){.fr{grid-template-columns:1fr}}
 </style></head><body>
 <header><h1>Home Visit Register</h1><div class="st" id="st"></div><button class="btn" id="sb" data-act="sync">Sync now</button><button class="btn" id="lk" data-act="link">Copy setup link</button><button class="btn" id="lo" data-act="logout">Sign out</button></header>
-<nav id="nav"><button data-v="dash">Dashboard</button><button data-v="patients">Patients</button><button data-v="forms">Forms</button><button data-v="log">Activity log</button></nav>
+<nav id="nav"><button data-v="dash">Dashboard</button><button data-v="patients">Patients</button><button data-v="forms">Forms</button><button data-v="log">Activity log</button><button data-v="admin">Admin</button></nav>
 <main id="main"></main><dialog id="dlg"></dialog><div id="print"></div>
+<script src="jspdf.umd.min.js"></script>
 <script>
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6),now=()=>new Date().toISOString();
@@ -54,13 +57,6 @@ const norm=()=>['monthly','weekly'].forEach(k=>S[k].forEach(f=>f.type=k));norm()
 const save=()=>localStorage.setItem('brp_db',JSON.stringify(S));
 const REASONS=['Deceased','No longer applicable as a bed-ridden patient','Other'];
 const SIGNS=['Jaundice','Cyanosis','Clubbing','Edema','Dehydration','Pallor','Petechiae','Anasarca','Koilonychia','Lymph nodes'];
-const MF=[['1. History of the presenting complaints',[['hpc','History of the presenting complaints','a']]],
-['2. Social history',[['people','Number of people living in this room'],['room','Size of room']]],
-['3. Environmental history',[['vent','Ventilation of the room','gb'],['water','Drinking water','gb']]],
-['4. Personal history',[['appetite','Patient’s appetite'],['bowel','Bowel movement'],['hygiene','Hygiene'],['sleep','Sleeping pattern']]],
-['5. General examination',[['appearance','General appearance'],['consc','Consciousness'],['temp','Temperature'],['bp','Blood pressure'],['pulse','Pulse rate'],['rr','Respiratory rate']]],
-['6. Systemic examination',[['cvs','Cardiovascular system','a'],['resp','Respiratory system','a'],['abd','Abdomen','a'],['cns','Central nervous system','a']]],
-['7. Current medication history',[['meds','Current medication history','a']]],['8. Remarks',[['remarks','Remarks','a']]]];
 const WI=['Temperature','Respiratory Rate','Pulse Rate','Blood Pressure','O2','Personal Hygiene','Environmental cleanliness','Presenting complaint','New complaint','Treatment (Regular or not)','Appetite','Urine','Motion','Exercise (Regular or not)','Bed Sore'];
 const SO={monthly:[['Name of the HW','hw'],['Name of the Nurse','nurse'],['Name of the Doctor','doctor']],weekly:[['Name of the H.O','ho1'],['Name of the H.O','ho2']]};
 
@@ -76,7 +72,7 @@ async function sync(manual){
     const r=await fetch(cfg.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({pin:cfg.pin,user:cfg.user,ops:sent})});
     const j=await r.json();if(!j.ok)throw new Error(j.error);
     const ids=new Set(sent.map(o=>o.id));S.queue=S.queue.filter(o=>!ids.has(o.id));
-    ['patients','monthly','weekly','log'].forEach(k=>S[k]=j[k]);norm();S.queue.forEach(applyOp);S.last=now();ok=true;if(manual)toast('Synced');
+    ['patients','monthly','weekly','log'].forEach(k=>S[k]=j[k]);norm();if(j.template)S.tpl=j.template;S.queue.forEach(applyOp);S.last=now();ok=true;if(manual)toast('Synced');
   }catch(e){if(manual)toast(e.message==='auth'?'Wrong PIN':'Could not reach the server. Changes stay on this tablet.',1)}
   syncing=false;save();V.name==='form'?paint():render();return ok}
 
@@ -89,7 +85,7 @@ function paint(){const on=navigator.onLine;$('#st').className='st'+(on?'':' off'
 function go(v,id){V.name=v;V.id=id;V.q='';render();scrollTo(0,0)}
 function render(){paint();document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===V.name||(V.name==='patient'&&b.dataset.v==='patients')||(V.name==='form'&&b.dataset.v==='forms')));
   if(!cfg){$('#main').innerHTML=loginView();return}if(V.name==='form'&&!V.e)V.name='dash';
-  $('#main').innerHTML=({dash,patients,patient,forms,log,form})[V.name]()}
+  $('#main').innerHTML=({dash,patients,patient,forms,log,form,admin})[V.name]()}
 const chip=(c,t)=>`<span class="chip ${c}">${t}</span>`;
 const dueChip=(a,lim)=>a===null?chip('warn','No visit yet'):chip(a>lim?'warn':'ok',a===0?'Today':a+' d ago');
 const act=()=>S.patients.filter(p=>p.status!=='Removed'),lastV=(pid,c)=>S[c].filter(f=>f.patientId===pid).map(f=>f.visitDate).sort().pop();
@@ -118,27 +114,86 @@ function patient(){const p=S.patients.find(x=>x.id===V.id);if(!p)return'<p>Patie
 <div class=card><h2>Visit forms</h2>${fs.length?`<div class=wrap><table><tr><th>Visit<th>Patient<th>Type<th></tr>${fs.map(formRow).join('')}</table></div>`:'<p class=m>No visits recorded yet.</p>'}</div>`}
 function forms(){return `<div class=bar2><input data-q placeholder="Search patient" value="${esc(V.q)}"><select data-t>${['all','weekly','monthly'].map(o=>`<option value=${o} ${V.t===o?'selected':''}>${o==='all'?'All forms':o[0].toUpperCase()+o.slice(1)}</option>`).join('')}</select></div><div class=card id=list>${flist()}</div>`}
 function flist(){const L=allForms().filter(f=>(V.t==='all'||f.type===V.t)&&f.patientName.toLowerCase().includes(V.q.toLowerCase()));
-  return L.length?`<div class=wrap><table><tr><th>Visit<th>Patient<th>Type<th>Saved by<th>Sync<th></tr>${L.map(f=>`<tr data-act=of data-id="${f.id}" data-t="${f.type}"><td>${esc(f.visitDate)}<td>${esc(f.patientName)}<td>${chip(f.type==='monthly'?'amb':'',f.type)}<td>${esc(f.savedBy)}<td>${pend(f.id)?chip('amb','Waiting'):chip('ok','Synced')}<td><button class=btn data-act=pr data-id="${f.id}" data-t="${f.type}">PDF</button>`).join('')}</table></div>`:'<p class=m>No forms found. Open a patient and start a visit.</p>'}
+  return L.length?`<div class=wrap><table><tr><th>Visit<th>Patient<th>Type<th>Saved by<th>Sync<th></tr>${L.map(f=>`<tr data-act=of data-id="${f.id}" data-t="${f.type}"><td>${esc(f.visitDate)}<td>${esc(f.patientName)}<td>${chip(f.type==='monthly'?'amb':'',f.type)}<td>${esc(f.savedBy)}<td>${pend(f.id)?chip('amb','Waiting'):chip('ok','Synced')}<td><button class=btn data-act=dl data-id="${f.id}" data-t="${f.type}">Download PDF</button> <button class=btn data-act=pr data-id="${f.id}" data-t="${f.type}">Print</button>`).join('')}</table></div>`:'<p class=m>No forms found. Open a patient and start a visit.</p>'}
 function log(){return `<div class=bar2><input data-q placeholder="Filter the activity log" value="${esc(V.q)}"></div><div class=card id=list>${llist()}</div>`}
 function llist(){const P=S.queue.map(o=>({time:o.ts,user:cfg.user,action:o.act,detail:o.detail,p:1}));
   const L=[...P.reverse(),...S.log].filter(e=>(e.user+e.action+e.detail).toLowerCase().includes(V.q.toLowerCase()));
   return L.length?`<div class=wrap><table><tr><th>When<th>Who<th>Action<th>Details</tr>${L.map(e=>`<tr><td>${fmt(e.time)}${e.p?'<br>'+chip('amb','Waiting to sync'):''}<td>${esc(e.user)}<td>${esc(e.action)}<td>${esc(e.detail)}`).join('')}</table></div>`:'<p class=m>No activity yet.</p>'}
-const fld=(k,l,t,d)=>{const v=esc(d[k]);return `<div><label>${l}</label>${t==='a'?`<textarea data-k="${k}">${v}</textarea>`:t==='gb'?`<select data-k="${k}">${['','Good','Bad'].map(o=>`<option ${d[k]===o?'selected':''}>${o}</option>`).join('')}</select>`:`<input ${t==='d'?'type=date ':''}data-k="${k}" value="${v}">`}</div>`};
-function form(){const {rec,restored}=V.e,d=rec.data||{},m=rec.type==='monthly';
-  return `<div class=bar2><button class=btn data-act=back>Back</button><span class=sp></span><button class=btn data-act=printform>Save and print / PDF</button><button class="btn p" data-act=saveform>Save</button></div>
+const TYPES=[['text','Short text'],['area','Long text'],['number','Number'],['date','Date'],['select','Choose one'],['multi','Choose several']];
+const clone=o=>JSON.parse(JSON.stringify(o)),mk=(k,l,t,o)=>({k,l,t:t||'text',o:o||[]});
+const GFP=['Good','Fair','Poor'],NOR=['Normal','Constipated','Diarrhoea'],REG=['Regular','Not regular'],ar=(k,l)=>mk(k,l,'area');
+const DEFTPL={monthly:{sections:[
+{title:'Examination signs',fields:[mk('signs','Signs','multi',SIGNS)]},
+{title:'1. History of the presenting complaints',fields:[ar('hpc','History of the presenting complaints')]},
+{title:'2. Social history',fields:[mk('people','Number of people living in this room','number'),mk('room','Size of room')]},
+{title:'3. Environmental history',fields:[mk('vent','Ventilation of the room','select',['Good','Bad']),mk('water','Drinking water','select',['Good','Bad'])]},
+{title:'4. Personal history',fields:[mk('appetite','Patient’s appetite','select',GFP),mk('bowel','Bowel movement','select',NOR),mk('hygiene','Hygiene','select',GFP),mk('sleep','Sleeping pattern','select',['Normal','Disturbed','Poor'])]},
+{title:'5. General examination',fields:[mk('appearance','General appearance'),mk('consc','Consciousness','select',['Alert','Responds to voice','Responds to pain','Unresponsive']),mk('temp','Temperature'),mk('bp','Blood pressure'),mk('pulse','Pulse rate'),mk('rr','Respiratory rate')]},
+{title:'6. Systemic examination',fields:[ar('cvs','Cardiovascular system'),ar('resp','Respiratory system'),ar('abd','Abdomen'),ar('cns','Central nervous system')]},
+{title:'7. Current medication history',fields:[ar('meds','Current medication history')]},
+{title:'8. Remarks',fields:[ar('remarks','Remarks')]}]},
+weekly:{sections:[{title:'',fields:WI.map((l,i)=>mk(String(i),l,'text')).map((f,i)=>({5:['select',GFP],6:['select',['Clean','Fair','Dirty']],8:['select',['No','Yes']],9:['select',REG],10:['select',GFP],11:['select',['Normal','Abnormal']],12:['select',NOR],13:['select',REG],14:['select',['None','Present']]}[i]?{...f,t:{5:1}[0]||'select',o:({5:GFP,6:['Clean','Fair','Dirty'],8:['No','Yes'],9:REG,10:GFP,11:['Normal','Abnormal'],12:NOR,13:REG,14:['None','Present']})[i]}:f))}]}};
+const T=()=>S.tpl||DEFTPL,fieldsOf=t=>T()[t].sections.flatMap(s=>s.fields);
+function ctl(f,key,v){
+  if(f.t==='select'||f.t==='multi'){const sel=new Set([].concat(v||[])),all=[...f.o,...[...sel].filter(x=>!f.o.includes(x))],m=f.t==='multi';
+    return `<div class=signs>${all.map(o=>`<label><input type=${m?'checkbox':'radio'} ${m?`data-m="${key}"`:`name="${key}" data-r="${key}"`} value="${esc(o)}" ${sel.has(o)?'checked':''}>${esc(o)}</label>`).join('')}${m?'':`<button class=btn data-act=clr data-key="${key}">Clear</button>`}</div>`}
+  return f.t==='area'?`<textarea data-k="${key}">${esc(v)}</textarea>`:`<input type=${f.t==='number'?'number':f.t==='date'?'date':'text'} step=any data-k="${key}" value="${esc(v)}">`}
+const sf=(k,l,t,d)=>`<div><label>${l}</label><input ${t?'type=date ':''}data-k="${k}" value="${esc(d[k])}"></div>`;
+function form(){const {rec,restored}=V.e,d=rec.data||{},m=rec.type==='monthly',tp=T()[rec.type];
+  return `<div class=bar2><button class=btn data-act=back>Back</button><span class=sp></span><button class=btn data-act=printform>Save and print</button><button class=btn data-act=dlform>Save and download PDF</button><button class="btn p" data-act=saveform>Save</button></div>
 <div id=f>${restored?'<div class=note>Unsaved draft restored.</div>':''}<div class=card><h2>${esc(rec.patientName)} · ${esc(rec.regNo)}</h2><p class=m>${m?'Bed-ridden patient’s home visiting form (monthly)':'Weekly visiting form'}</p><div class=fg><div><label>Visit date</label><input type=date id=vd value="${esc(rec.visitDate)}"></div></div></div>`+
-(m?`<div class=card><h2>Signs</h2><div class=signs>${SIGNS.map(s=>`<label><input type=checkbox data-s="${s}" ${(d.signs||[]).includes(s)?'checked':''}>${s}</label>`).join('')}</div></div>`+MF.map(([t,fs])=>`<div class=card><h2>${t}</h2><div class=fg>${fs.map(([k,l,ty])=>fld(k,l,ty,d)).join('')}</div></div>`).join('')
-:`<div class=card><div class=wrap><table><tr><th>#<th>Check up<th>Result<th>Remarks</tr>${WI.map((n,i)=>`<tr><td>${i+1}<td>${n}<td><input data-k="r${i}" value="${esc(d['r'+i])}"><td><input data-k="m${i}" value="${esc(d['m'+i])}">`).join('')}</table></div></div>`)+
-`<div class=card><h2>Sign-off</h2><div class=fg>${SO[rec.type].map(([l,k])=>fld(k,l,'',d)+fld(k+'_d','Date','d',d)).join('')}</div><p class=m>Signatures are added by hand on the printed copy.</p></div></div>`}
-function readForm(){const d={};document.querySelectorAll('#f [data-k]').forEach(e=>d[e.dataset.k]=e.value);if($('#f [data-s]'))d.signs=[...document.querySelectorAll('#f [data-s]:checked')].map(x=>x.dataset.s);return d}
+(m?tp.sections.map(s=>`<div class=card><h2>${esc(s.title)}</h2><div class=fg>${s.fields.map(f=>`<div><label>${esc(f.l)}</label>${ctl(f,f.k,d[f.k])}</div>`).join('')}</div></div>`).join('')
+:`<div class=card><div class=wrap><table><tr><th>#<th>Check up<th>Result<th>Remarks</tr>${fieldsOf('weekly').map((f,i)=>`<tr><td>${i+1}<td>${esc(f.l)}<td>${ctl(f,'r'+f.k,d['r'+f.k])}<td><input data-k="m${f.k}" value="${esc(d['m'+f.k])}">`).join('')}</table></div></div>`)+
+`<div class=card><h2>Sign-off</h2><div class=fg>${SO[rec.type].map(([l,k])=>sf(k,l,0,d)+sf(k+'_d','Date',1,d)).join('')}</div><p class=m>Signatures are added by hand on the printed copy.</p></div></div>`}
+function readForm(){const t=V.e.rec.type,d={...V.e.rec.data},q=s=>document.querySelector('#f '+s),qa=s=>[...document.querySelectorAll('#f '+s)];
+  const get=(f,key)=>f.t==='multi'?qa(`[data-m="${key}"]:checked`).map(x=>x.value):f.t==='select'?(q(`[data-r="${key}"]:checked`)||{}).value||'':q(`[data-k="${key}"]`).value;
+  fieldsOf(t).forEach(f=>{const key=t==='weekly'?'r'+f.k:f.k;d[key]=get(f,key);if(t==='weekly')d['m'+f.k]=q(`[data-k="m${f.k}"]`).value});
+  SO[t].forEach(([l,k])=>{d[k]=q(`[data-k="${k}"]`).value;d[k+'_d']=q(`[data-k="${k}_d"]`).value});return d}
+
+/* ---------- admin: form builder ---------- */
+let AP='';
+const fr=(f,si,fi)=>`<div class=fr data-fi="${fi}"><input data-fl value="${esc(f.l)}" placeholder="Question or label"><select data-ft>${TYPES.map(([v,l])=>`<option value=${v} ${f.t===v?'selected':''}>${l}</option>`).join('')}</select><div class=ab><button class=btn data-act=upf data-s="${si}" data-i="${fi}">↑</button><button class=btn data-act=dnf data-s="${si}" data-i="${fi}">↓</button><button class="btn d" data-act=delf data-s="${si}" data-i="${fi}">✕</button></div>${f.t==='select'||f.t==='multi'?`<textarea data-fo placeholder="Options, one per line">${esc((f.o||[]).join('\n'))}</textarea>`:''}</div>`;
+function admin(){
+  if(!AP)return `<div class=card style="max-width:460px;margin:30px auto"><h2>Admin access</h2><p class=m>Enter the admin PIN to customise the forms. This needs an internet connection.</p><label>Admin PIN</label><input id=ap type=password><br><br><button class="btn p" data-act=unlock>Unlock</button></div>`;
+  const m=V.tp==='monthly',tp=V.tpl[V.tp];
+  return `<div id=adm><div class=bar2><select data-atp><option value=monthly ${m?'selected':''}>Monthly form</option><option value=weekly ${m?'':'selected'}>Weekly form</option></select><span class=sp></span><button class=btn data-act=lock>Lock admin</button><button class="btn p" data-act=saveadm>Save changes</button></div>
+<p class=m>Changes reach every device after its next sync. Answers already saved are never deleted; a removed field just stops showing.</p>
+${tp.sections.map((s,si)=>`<div class=card data-si="${si}">${m?`<div class=bar2><input data-st value="${esc(s.title)}" placeholder="Section title"><button class=btn data-act=ups data-s="${si}">↑</button><button class=btn data-act=dns data-s="${si}">↓</button><button class="btn d" data-act=dels data-s="${si}">Delete section</button></div>`:''}${s.fields.map((f,fi)=>fr(f,si,fi)).join('')}<br><button class=btn data-act=addf data-s="${si}">${m?'Add field':'Add check'}</button></div>`).join('')}${m?'<button class=btn data-act=adds>Add section</button>':''}</div>`}
+function readAdm(){const sec=V.tpl[V.tp].sections;document.querySelectorAll('#adm [data-si]').forEach(b=>{const s=sec[+b.dataset.si],ti=b.querySelector('[data-st]');if(ti)s.title=ti.value;
+  b.querySelectorAll('[data-fi]').forEach(r=>{const f=s.fields[+r.dataset.fi],o=r.querySelector('[data-fo]');f.l=r.querySelector('[data-fl]').value;f.t=r.querySelector('[data-ft]').value;if(o)f.o=o.value.split('\n').map(x=>x.trim()).filter(Boolean)})})}
+function tplDiff(a,b){const out=[];['monthly','weekly'].forEach(t=>{const g=x=>new Map(x[t].sections.flatMap(s=>s.fields).map(f=>[f.k,f])),fa=g(a),fb=g(b);
+  fb.forEach((f,k)=>{const o=fa.get(k);if(!o)out.push(`${t}: added “${f.l}”`);else if(o.l!==f.l||o.t!==f.t||(o.o||[]).join('|')!==(f.o||[]).join('|'))out.push(`${t}: changed “${o.l}”`+(o.l!==f.l?` → “${f.l}”`:''))});
+  fa.forEach((f,k)=>{if(!fb.has(k))out.push(`${t}: removed “${f.l}”`)})});return out.join('; ')||'layout or order only'}
+async function api(b){const r=await fetch(cfg.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({pin:cfg.pin,user:cfg.user,...b})});return r.json()}
 
 /* ---------- print / PDF ---------- */
-function printHTML(f){const d=f.data||{},m=f.type==='monthly';
+function pv(f,v,tbl){if(f.t==='select'||f.t==='multi'){const sel=new Set([].concat(v||[]));if(tbl)return esc([...sel].join(', '));return [...f.o,...[...sel].filter(x=>!f.o.includes(x))].map(o=>`<span class=pk>${sel.has(o)?'☑':'☐'} ${esc(o)}</span>`).join('')}return esc(v)}
+function printHTML(f){const d=f.data||{},m=f.type==='monthly',tp=T()[f.type];
   const head=`<div class=ph><div>Sh: Atoll Hospital</div><div>Sh: Funadhoo</div><h2>${m?'Bed ridden Patient’s Home visiting form':'Weekly visiting form'}</h2></div><table class=pt><tr><td>Name of the Patient: <b>${esc(f.patientName)}</b><td>Registry No.: <b>${esc(f.regNo)}</b><td>Date: <b>${esc(f.visitDate)}</b></table>`;
   const sign=`<table class="pt sg"><tr><th>Name<th>Date<th>Signature</tr>${SO[f.type].map(([l,k])=>`<tr><td>${l}: ${esc(d[k])}<td>${esc(d[k+'_d'])}<td style="width:35%">`).join('')}</table>`;
-  return head+(m?`<p>${SIGNS.map(s=>`<span class=pk>${(d.signs||[]).includes(s)?'☑':'☐'} ${s}</span>`).join('')}</p>`+MF.map(([t,fs])=>`<h4>${t}</h4>`+fs.map(([k,l])=>`<div class=pa><b>${l}:</b> ${esc(d[k])}</div>`).join('')).join('')
-  :`<table class=pt><tr><th>#<th>Check up<th>Result<th>Remarks</tr>${WI.map((n,i)=>`<tr><td>${i+1}<td>${n}<td>${esc(d['r'+i])}<td>${esc(d['m'+i])}`).join('')}</table>`)+sign}
+  return head+(m?tp.sections.map(s=>`<h4>${esc(s.title)}</h4>`+s.fields.map(x=>`<div class=pa><b>${esc(x.l)}:</b> ${pv(x,d[x.k])}</div>`).join('')).join('')
+  :`<table class=pt><tr><th>#<th>Check up<th>Result<th>Remarks</tr>${fieldsOf('weekly').map((x,i)=>`<tr><td>${i+1}<td>${esc(x.l)}<td>${pv(x,d['r'+x.k],1)}<td>${esc(d['m'+x.k])}`).join('')}</table>`)+sign}
 function printForm(f){$('#print').innerHTML=printHTML(f);const t=document.title;document.title=`${f.patientName} - ${f.type} visit ${f.visitDate}`;print();document.title=t}
+/*PDFSTART*/
+function makePDF(J,f,tpl,SO){
+  const A=s=>String(s??'').replace(/[‘’]/g,"'").replace(/[“”]/g,'"').replace(/[–—]/g,'-'),D=new J({unit:'mm',format:'a4'}),M=14,CW=182,d=f.data||{},m=f.type==='monthly';let y=M;
+  const need=h=>{if(y+h>284){D.addPage();y=M}},sz=(s,b)=>{D.setFont('helvetica',b?'bold':'normal');D.setFontSize(s)},val=v=>Array.isArray(v)?v.join(', '):v;
+  const P=(s,z,b)=>{sz(z,b);D.splitTextToSize(A(s)||' ',CW).forEach(l=>{need(z*.45);D.text(l,M,y);y+=z*.45})};
+  const LV=(l,v)=>{sz(10,1);const lw=D.getTextWidth(A(l)+': ');need(5);D.text(A(l)+': ',M,y);sz(10);const L=D.splitTextToSize(A(val(v))||'',CW-lw);D.text(L[0]||'',M+lw,y);y+=4.8;L.slice(1).forEach(x=>{need(5);D.text(x,M,y);y+=4.8});D.setDrawColor(150);D.line(M+(L.length>1?0:lw),y-3.8,M+CW,y-3.8);y+=1};
+  const box=(x,yy,on)=>{D.setDrawColor(0);D.rect(x,yy,3.2,3.2);if(on){D.line(x+.6,yy+1.7,x+1.4,yy+2.6);D.line(x+1.4,yy+2.6,x+2.7,yy+.6)}};
+  const opts=(all,sel)=>{let x=M;sz(10);need(7);all.forEach(o=>{const w=D.getTextWidth(A(o))+8;if(x+w>M+CW){x=M;y+=6;need(7)}box(x,y-2.7,sel.has(o));D.text(A(o),x+4.6,y);x+=w+2});y+=6.5};
+  sz(11);D.text('Sh: Atoll Hospital',105,y,{align:'center'});y+=5;D.text('Sh: Funadhoo',105,y,{align:'center'});y+=7;sz(14,1);D.text(m?"Bed ridden Patient's Home visiting form":'Weekly visiting form',105,y,{align:'center'});y+=7;
+  [['Name of the Patient: '+f.patientName,92],['Registry No.: '+f.regNo,48],['Date: '+f.visitDate,42]].reduce((x,[s,w])=>{D.setDrawColor(0);D.rect(x,y,w,9);sz(10);D.text(D.splitTextToSize(A(s),w-4)[0],x+2,y+5.8);return x+w},M);y+=15;
+  if(m)tpl.monthly.sections.forEach(s=>{need(16);P(s.title,11,1);y+=1.5;s.fields.forEach(x=>{const v=d[x.k];if(x.t==='select'||x.t==='multi'){const sel=new Set([].concat(v||[]));sz(10,1);need(12);D.text(A(x.l)+':',M,y);y+=5.4;opts([...x.o,...[...sel].filter(z=>!x.o.includes(z))],sel)}else LV(x.l,v)});y+=3});
+  else{const W=[9,58,55,60];const row=(c,b,fill)=>{sz(10,b);const L=c.map((t,i)=>D.splitTextToSize(A(t)||' ',W[i]-4)),h=Math.max(...L.map(l=>l.length))*4.6+3;need(h);let x=M;L.forEach((l,i)=>{D.setDrawColor(0);if(fill){D.setFillColor(230,236,235);D.rect(x,y,W[i],h,'FD')}else D.rect(x,y,W[i],h);D.text(l,x+2,y+5);x+=W[i]});y+=h};
+    row(['#','Check up','Result','Remarks'],1,1);tpl.weekly.sections.flatMap(s=>s.fields).forEach((x,i)=>row([String(i+1),x.l,String(val(d['r'+x.k])||''),d['m'+x.k]||''],0))}
+  y+=8;need(14+SO[f.type].length*15);const W2=[96,34,52];let x=M;['Name','Date','Signature'].forEach((t,i)=>{sz(10,1);D.setFillColor(230,236,235);D.rect(x,y,W2[i],8,'FD');D.text(t,x+2,y+5.5);x+=W2[i]});y+=8;
+  SO[f.type].forEach(([l,k])=>{x=M;[l+': '+(d[k]||''),d[k+'_d']||'',''].forEach((t,i)=>{sz(10);D.rect(x,y,W2[i],15);D.text(D.splitTextToSize(A(t),W2[i]-4)[0],x+2,y+6);x+=W2[i]});y+=15});
+  return D}
+/*PDFEND*/
+function dlPDF(f){const J=window.jspdf&&window.jspdf.jsPDF;if(!J)return toast('PDF tool not loaded yet. Open the app once while online.',1);
+  if(/[^\x00-\xff]/.test(JSON.stringify([f.patientName,f.regNo,f.data,T()]).replace(/[‘’“”–—]/g,'')))return toast('This form has characters the PDF cannot draw (for example Dhivehi). Use Print and choose Save as PDF.',1);
+  makePDF(J,f,T(),SO).save(`${f.patientName} - ${f.type} visit ${f.visitDate}.pdf`)}
 
 /* ---------- actions ---------- */
 const H={};
@@ -147,7 +202,7 @@ H.login=async()=>{const old=cfg;cfg={url:$('#lu').value.trim(),user:$('#ln').val
   if(!OKURL(cfg.url)){cfg=old;return toast('That is not a valid Apps Script web app link (it should end in /exec)',1)}
   if(await sync(true)){localStorage.setItem('brp_cfg',JSON.stringify(cfg));localStorage.setItem('brp_url',cfg.url);render()}else cfg=old};
 H.link=async()=>{const l=location.origin+location.pathname+'#u='+encodeURIComponent(cfg.url);try{await navigator.clipboard.writeText(l);toast('Setup link copied. Send it privately; it never includes the PIN.')}catch{prompt('Copy this setup link:',l)}};
-H.logout=()=>{if(confirm('Sign out? Unsynced changes stay on this tablet until you sign in again.')){cfg=null;localStorage.removeItem('brp_cfg');render()}};
+H.logout=()=>{if(confirm('Sign out? Unsynced changes stay on this tablet until you sign in again.')){cfg=null;AP='';localStorage.removeItem('brp_cfg');render()}};
 const pfield=(k,l,v,t)=>`<div><label>${l}</label><input name=${k} ${t?'type='+t:''} value="${esc(v)}"></div>`;
 H.newp=H.editp=e=>{const p=e.dataset.act==='editp'?S.patients.find(x=>x.id===V.id):{registeredOn:today()};
   modal(`<h2>${p.id?'Edit patient':'Register patient'}</h2><form id=pf><input type=hidden name=id value="${p.id||''}"><div class=fg>${pfield('name','Full name',p.name)}${pfield('regNo','Registry no.',p.regNo)}${pfield('age','Age',p.age)}<div><label>Sex</label><select name=sex>${['','Male','Female'].map(o=>`<option ${p.sex===o?'selected':''}>${o}</option>`).join('')}</select></div>${pfield('nid','ID card no.',p.nid)}${pfield('contact','Contact number',p.contact)}${pfield('address','Address',p.address)}${pfield('caregiver','Caregiver',p.caregiver)}${pfield('condition','Condition / diagnosis',p.condition)}${pfield('registeredOn','Registered on',p.registeredOn,'date')}</div></form><br><div class=bar2><span class=sp></span><button class=btn data-act=close>Cancel</button><button class="btn p" data-act=savep>Save</button></div>`)};
@@ -169,14 +224,29 @@ H.back=()=>{const r=V.e.rec;go(V.from==='forms'?'forms':'patient',r.patientId)};
 H.saveform=()=>{const r=V.e.rec,old=S[r.type].find(f=>f.id===r.id),rec={...r,visitDate:$('#vd').value||today(),data:readForm(),savedBy:cfg.user,updatedAt:now()};
   queue(r.type,rec,(old?'Edited ':'Created ')+r.type+' form',`${rec.patientName} · visit ${rec.visitDate}`+(old?' · '+(diff(old,rec)||'no field changes'):''));
   S.draft=null;V.e={rec};save();toast(navigator.onLine?'Saved':'Saved on this tablet. It will sync when online.');return rec};
-H.printform=()=>printForm(H.saveform());
+H.printform=()=>printForm(H.saveform());H.dlform=()=>dlPDF(H.saveform());
+H.dl=(e,ev)=>{ev.stopPropagation();dlPDF(S[e.dataset.t].find(f=>f.id===e.dataset.id))};
+H.clr=e=>{document.querySelectorAll(`#f [data-r="${e.dataset.key}"]`).forEach(x=>x.checked=false);S.draft={rec:{...V.e.rec,visitDate:$('#vd').value,data:readForm()}};save()};
+H.unlock=async()=>{try{const j=await api({adminPin:$('#ap').value,adminCheck:1});if(!j.ok)throw 0;AP=$('#ap').value;V.tpl=clone(T());V.tp='monthly';render()}catch{toast('Wrong admin PIN, or no internet. Admin needs a connection.',1)}};
+H.lock=()=>{AP='';go('dash')};
+const secs=()=>V.tpl[V.tp].sections,mv=(a,i,d)=>{const j=i+d;if(j>=0&&j<a.length)[a[i],a[j]]=[a[j],a[i]]};
+H.addf=e=>{readAdm();secs()[+e.dataset.s].fields.push(mk('f'+uid(),'','text'));render()};
+H.delf=e=>{readAdm();if(!confirm('Delete this field? Answers already saved stay in the sheet but will no longer show.'))return;secs()[+e.dataset.s].fields.splice(+e.dataset.i,1);render()};
+H.upf=e=>{readAdm();mv(secs()[+e.dataset.s].fields,+e.dataset.i,-1);render()};H.dnf=e=>{readAdm();mv(secs()[+e.dataset.s].fields,+e.dataset.i,1);render()};
+H.adds=()=>{readAdm();secs().push({title:'New section',fields:[]});render()};
+H.dels=e=>{readAdm();if(!confirm('Delete this whole section and its fields?'))return;secs().splice(+e.dataset.s,1);render()};
+H.ups=e=>{readAdm();mv(secs(),+e.dataset.s,-1);render()};H.dns=e=>{readAdm();mv(secs(),+e.dataset.s,1);render()};
+H.saveadm=async()=>{readAdm();let bad=0;['monthly','weekly'].forEach(t=>V.tpl[t].sections.forEach(s=>s.fields.forEach(f=>{f.l=f.l.trim();if(!f.l||((f.t==='select'||f.t==='multi')&&!(f.o||[]).length))bad=1})));
+  if(bad){render();return toast('Every field needs a label, and choice fields need at least one option',1)}
+  try{const j=await api({adminPin:AP,template:V.tpl,summary:tplDiff(T(),V.tpl)});if(!j.ok)throw new Error(j.error);S.tpl=j.template||clone(V.tpl);save();toast('Forms updated for all devices');sync()}
+  catch(e){if(e.message==='admin'){AP='';render()}toast(e.message==='admin'?'Admin PIN no longer valid':'Could not save. Admin changes need internet.',1)}};
 H.pr=(e,ev)=>{ev.stopPropagation();printForm(S[e.dataset.t].find(f=>f.id===e.dataset.id))};
 document.addEventListener('click',e=>{const el=e.target.closest('[data-act]');if(el&&H[el.dataset.act])H[el.dataset.act](el,e)});
 document.addEventListener('click',e=>{const b=e.target.closest('#nav button');if(b)go(b.dataset.v)});
 document.addEventListener('input',e=>{const t=e.target;
   if(t.dataset.q!==undefined){V.q=t.value;$('#list').innerHTML=({patients:plist,forms:flist,log:llist})[V.name]()}
   else if(t.closest&&t.closest('#f')){const r=V.e.rec;S.draft={rec:{...r,visitDate:$('#vd').value,data:readForm()}};save()}});
-document.addEventListener('change',e=>{const t=e.target;if(t.dataset.f!==undefined){V.f=t.value;$('#list').innerHTML=plist()}if(t.dataset.t!==undefined&&V.name==='forms'){V.t=t.value;$('#list').innerHTML=flist()}});
+document.addEventListener('change',e=>{const t=e.target;if(t.dataset.atp!==undefined){readAdm();V.tp=t.value;render()}if(t.dataset.ft!==undefined){readAdm();render()}if(t.dataset.f!==undefined){V.f=t.value;$('#list').innerHTML=plist()}if(t.dataset.t!==undefined&&V.name==='forms'){V.t=t.value;$('#list').innerHTML=flist()}});
 addEventListener('online',()=>{paint();sync()});addEventListener('offline',paint);
 setInterval(()=>{if(S.queue.length&&navigator.onLine)sync()},30000);
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');
